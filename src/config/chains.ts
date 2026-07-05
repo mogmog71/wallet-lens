@@ -1,11 +1,21 @@
 import { mainnet, base, arbitrum } from 'viem/chains'
 import type { Chain } from 'viem'
 
+/**
+ * 履歴取得プロバイダ。
+ * - etherscan: Etherscan API V2(無料キー。2026年時点で無料枠はEthereumのみ)
+ * - moralis: Moralis Wallet History(無料キー1個でBase/Arbitrum等に対応)
+ */
+export type ExplorerConfig =
+  | { kind: 'etherscan' }
+  | { kind: 'moralis'; moralisChain: string }
+
 export interface ChainConfig {
   chainId: number
   key: 'ethereum' | 'base' | 'arbitrum'
   name: string
   shortName: string
+  explorer: ExplorerConfig
   nativeSymbol: string
   /** DefiLlama の {chain}:{address} 形式のchainスラッグ */
   llamaChain: string
@@ -27,6 +37,7 @@ export const CHAINS: ChainConfig[] = [
     key: 'ethereum',
     name: 'Ethereum',
     shortName: 'ETH',
+    explorer: { kind: 'etherscan' },
     nativeSymbol: 'ETH',
     llamaChain: 'ethereum',
     nativePriceKey: 'coingecko:ethereum',
@@ -42,6 +53,7 @@ export const CHAINS: ChainConfig[] = [
     key: 'base',
     name: 'Base',
     shortName: 'Base',
+    explorer: { kind: 'moralis', moralisChain: 'base' },
     nativeSymbol: 'ETH',
     llamaChain: 'base',
     nativePriceKey: 'coingecko:ethereum',
@@ -57,6 +69,7 @@ export const CHAINS: ChainConfig[] = [
     key: 'arbitrum',
     name: 'Arbitrum One',
     shortName: 'Arb',
+    explorer: { kind: 'moralis', moralisChain: 'arbitrum' },
     nativeSymbol: 'ETH',
     llamaChain: 'arbitrum',
     nativePriceKey: 'coingecko:ethereum',

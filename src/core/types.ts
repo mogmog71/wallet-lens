@@ -54,6 +54,8 @@ export interface TokenTransferRow {
   /** 'erc20' | 'erc721' | 'erc1155' */
   standard: 'erc20' | 'erc721' | 'erc1155'
   tokenId?: string
+  /** プロバイダ(Moralis)がスパム候補と判定したか */
+  providerSpam?: boolean
 }
 
 export interface TokenRow {
@@ -96,6 +98,8 @@ export interface FetchRangeRow {
   endpoint: string
   fromBlock: number
   toBlock: number
+  /** cursorページング型プロバイダ用: この時刻以降は取得済みであることを保証 */
+  fromTs?: number
   fetchedAt: number
 }
 

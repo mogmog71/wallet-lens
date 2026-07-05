@@ -36,12 +36,26 @@ class WalletLensDB extends Dexie {
 
 export const db = new WalletLensDB()
 
-const API_KEY_STORAGE = 'wallet-lens:etherscan-api-key'
-
-export function getApiKey(): string {
-  return localStorage.getItem(API_KEY_STORAGE) ?? ''
+export interface ApiKeys {
+  /** Etherscan V2(Ethereumの解析に必要) */
+  etherscan: string
+  /** Moralis(Base / Arbitrumの解析に必要) */
+  moralis: string
 }
 
-export function setApiKey(key: string) {
-  localStorage.setItem(API_KEY_STORAGE, key.trim())
+const KEY_STORAGE: Record<keyof ApiKeys, string> = {
+  etherscan: 'wallet-lens:etherscan-api-key',
+  moralis: 'wallet-lens:moralis-api-key',
+}
+
+export function getApiKeys(): ApiKeys {
+  return {
+    etherscan: localStorage.getItem(KEY_STORAGE.etherscan) ?? '',
+    moralis: localStorage.getItem(KEY_STORAGE.moralis) ?? '',
+  }
+}
+
+export function setApiKeys(keys: ApiKeys) {
+  localStorage.setItem(KEY_STORAGE.etherscan, keys.etherscan.trim())
+  localStorage.setItem(KEY_STORAGE.moralis, keys.moralis.trim())
 }

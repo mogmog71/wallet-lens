@@ -216,9 +216,17 @@ export function classifyTx(
     }
   }
 
+  // メソッド名でも判定できるようにする(Moralisはinputを返さない場合があり、
+  // その場合methodIdが取れないため method_label で補完する)
+  const fnLower = (methodName ?? '').toLowerCase()
+
   // 2. Wrap / Unwrap(Swapより先に判定して誤分類を防ぐ)
   if (tx && isSender && tx.to === chain.wrappedNative) {
-    if (tx.methodId === SELECTORS.wethDeposit || (tx.input === '0x' && BigInt(tx.value || '0') > 0n)) {
+    if (
+      tx.methodId === SELECTORS.wethDeposit ||
+      fnLower === 'deposit' ||
+      (tx.input === '0x' && BigInt(tx.value || '0') > 0n)
+    ) {
       const amt = formatAmount(tx.value, 18)
       return {
         ...base,
@@ -229,7 +237,7 @@ export function classifyTx(
         reason: 'wrapped nativeへのdeposit()',
       }
     }
-    if (tx.methodId === SELECTORS.wethWithdraw) {
+    if (tx.methodId === SELECTORS.wethWithdraw || fnLower === 'withdraw') {
       const amt = assetsIn[0] ? formatAmount(assetsIn[0].amountRaw, 18) : ''
       return {
         ...base,
@@ -242,8 +250,10 @@ export function classifyTx(
     }
   }
 
-  // 3. Approve
-  if (tx && isSender && APPROVE_SELECTORS.has(tx.methodId)) {
+  // 3. Approve(セレクタ一致 または プロバイダのメソッド名一致)
+  const isApproveName =
+    fnLower === 'approve' || fnLower === 'increaseallowance' || fnLower === 'decreaseallowance'
+  if (tx && isSender && (APPROVE_SELECTORS.has(tx.methodId) || isApproveName)) {
     const input = tx.input
     const spender = input.length >= 74 ? `0x${input.slice(34, 74)}`.toLowerCase() : undefined
     let unlimited = false

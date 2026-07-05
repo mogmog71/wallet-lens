@@ -3,6 +3,17 @@
 v0.2からの変更点。記載のない項目はv0.2(spec-v0.2.md)を踏襲する。
 変更理由の詳細は review-v0.2.md を参照。
 
+> **改訂(2026-07-05実装後の変更)**: Etherscan API V2の無料プランは実測で
+> Ethereum以外のチェーンを提供しなくなっていた(「Free API access is not
+> supported for this chain」)。Basescan/ArbiscanのV1 APIも廃止済み、
+> Blockscoutは一部セキュリティソフトがURLブラックリストでブロックするため不採用。
+> 対応として履歴取得プロバイダをチェーンごとに切り替える構成に変更した:
+> - **Ethereum → Etherscan API V2**(無料キー)
+> - **Base / Arbitrum → Moralis Wallet History API**(無料キー1個、40k CU/日。
+>   tx本体・internal tx・ERC20/NFT転送・失敗txを1エンドポイントで返し、
+>   possible_spamフラグはスパム判定の条件に加える)
+> 必要キーは最大2個になる(§4.1の「1個のみ」から変更)。
+
 ## 主な変更点
 
 1. **デプロイ形態を「ローカルWebアプリ」から「完全クライアントサイドSPA(静的ホスティング + PWA)」に変更**(R-1)

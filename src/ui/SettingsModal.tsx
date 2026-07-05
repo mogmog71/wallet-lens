@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { getApiKey, setApiKey } from '../db/db'
+import { getApiKeys, setApiKeys } from '../db/db'
 
 export function SettingsModal(props: { onClose: () => void }) {
-  const [key, setKey] = useState(getApiKey())
+  const [keys, setKeys] = useState(getApiKeys())
 
   function save() {
-    setApiKey(key)
+    setApiKeys(keys)
     props.onClose()
   }
+
+  const inputCls =
+    'mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-sm placeholder:text-slate-600 focus:border-sky-500 focus:outline-none'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={props.onClose}>
@@ -15,30 +18,51 @@ export function SettingsModal(props: { onClose: () => void }) {
         className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-base font-semibold">Etherscan APIキー</h2>
+        <h2 className="text-base font-semibold">APIキー設定</h2>
         <p className="mt-2 text-xs leading-relaxed text-slate-400">
-          解析には無料のEtherscan APIキーが必要です(1つでEthereum / Base / Arbitrumに対応)。
-          <a
-            href="https://etherscan.io/myapikey"
-            target="_blank"
-            rel="noreferrer"
-            className="text-sky-400 underline"
-          >
-            etherscan.io
+          解析するチェーンに応じて無料のAPIキーが必要です。キーはこの端末のブラウザ内
+          (localStorage)にのみ保存され、各APIプロバイダ以外に送信されることはありません。
+        </p>
+
+        <label className="mt-4 block text-xs font-medium text-slate-300">
+          Etherscan APIキー <span className="text-slate-500">(Ethereumの解析に必要)</span>
+        </label>
+        <p className="mt-0.5 text-[11px] text-slate-500">
+          <a href="https://etherscan.io/myapikey" target="_blank" rel="noreferrer" className="text-sky-400 underline">
+            etherscan.io/myapikey
           </a>
-          で無料登録して発行できます。キーはこの端末のブラウザ内(localStorage)にのみ保存され、
-          Etherscan以外に送信されることはありません。
+          で無料発行(無料枠はEthereumのみ対応)
         </p>
         <input
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="APIキーを貼り付け"
+          value={keys.etherscan}
+          onChange={(e) => setKeys({ ...keys, etherscan: e.target.value })}
+          placeholder="Etherscanキーを貼り付け"
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
-          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-sm placeholder:text-slate-600 focus:border-sky-500 focus:outline-none"
+          className={inputCls}
         />
-        <div className="mt-4 flex justify-end gap-2">
+
+        <label className="mt-4 block text-xs font-medium text-slate-300">
+          Moralis APIキー <span className="text-slate-500">(Base / Arbitrumの解析に必要)</span>
+        </label>
+        <p className="mt-0.5 text-[11px] text-slate-500">
+          <a href="https://admin.moralis.com/" target="_blank" rel="noreferrer" className="text-sky-400 underline">
+            admin.moralis.com
+          </a>
+          で無料登録 → 「API Keys」からコピー(無料枠 40,000 CU/日)
+        </p>
+        <input
+          value={keys.moralis}
+          onChange={(e) => setKeys({ ...keys, moralis: e.target.value })}
+          placeholder="Moralisキーを貼り付け"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          className={inputCls}
+        />
+
+        <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={props.onClose}
             className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"

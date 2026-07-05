@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { getChain } from './config/chains'
 import { runAnalysis } from './core/analyze'
 import type { AnalysisParams, AnalysisResult } from './core/types'
-import { getApiKey } from './db/db'
+import { getApiKeys } from './db/db'
 import { AddressForm } from './ui/AddressForm'
 import { PortfolioView } from './ui/PortfolioView'
 import { SettingsModal } from './ui/SettingsModal'
@@ -17,18 +18,28 @@ export default function App() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<Tab>('summary')
-  const [showSettings, setShowSettings] = useState(() => !getApiKey())
+  const [showSettings, setShowSettings] = useState(() => {
+    const k = getApiKeys()
+    return !k.etherscan && !k.moralis
+  })
 
   async function handleAnalyze(params: AnalysisParams) {
-    const apiKey = getApiKey()
-    if (!apiKey) {
+    const keys = getApiKeys()
+    // 選択チェーンに必要なキーが揃っているか(Ethereum→Etherscan / Base・Arbitrum→Moralis)
+    const kinds = new Set(params.chainIds.map((id) => getChain(id).explorer.kind))
+    const missing: string[] = []
+    if (kinds.has('etherscan') && !keys.etherscan) missing.push('Etherscan')
+    if (kinds.has('moralis') && !keys.moralis) missing.push('Moralis')
+    if (missing.length > 0) {
+      setError(`${missing.join('・')}のAPIキーが未設定です。設定画面から登録してください。`)
+      setPhase('error')
       setShowSettings(true)
       return
     }
     setPhase('running')
     setError('')
     try {
-      const r = await runAnalysis(params, apiKey, (step, detail) => setProgress({ step, detail }))
+      const r = await runAnalysis(params, keys, (step, detail) => setProgress({ step, detail }))
       setResult(r)
       setTab('summary')
       setPhase('done')

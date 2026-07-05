@@ -1,5 +1,5 @@
 import { getChain } from '../config/chains'
-import { db } from '../db/db'
+import { db, type ApiKeys } from '../db/db'
 import { fetchCurrentPrices, fetchDailyPrices } from '../lib/defillama'
 import { rawToNumber, utcDate } from '../lib/format'
 import { fetchCurrentBalances, fetchReceipts } from '../lib/rpc'
@@ -19,7 +19,7 @@ import type {
 
 export async function runAnalysis(
   params: AnalysisParams,
-  apiKey: string,
+  keys: ApiKeys,
   onProgress: ProgressFn,
 ): Promise<AnalysisResult> {
   const wallet = params.address.toLowerCase()
@@ -33,7 +33,7 @@ export async function runAnalysis(
     onProgress(`${chain.name}: データ取得`, 'Etherscanから履歴を取得しています')
 
     // 1. raw data(逆算方式のため期間開始〜最新まで常に取得する)
-    await ensureRawData(chainId, wallet, params.startTs, apiKey, (s, d) =>
+    await ensureRawData(chain, wallet, params.startTs, keys, (s, d) =>
       onProgress(`${chain.name}: ${s}`, d),
     )
     const raw = await loadRawData(chainId, wallet, params.startTs)

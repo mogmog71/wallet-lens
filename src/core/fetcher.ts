@@ -1,5 +1,7 @@
-import { db } from '../db/db'
+import type { ChainConfig } from '../config/chains'
+import { db, type ApiKeys } from '../db/db'
 import { fetchAll, getBlockByTime, type ListAction } from '../lib/etherscan'
+import { fetchMoralisHistory } from '../lib/moralis'
 import { getClient } from '../lib/rpc'
 import type { InternalTxRow, TokenTransferRow, TxRow, ProgressFn } from './types'
 
@@ -9,7 +11,15 @@ export interface RawData {
   transfers: TokenTransferRow[]
 }
 
-const ENDPOINTS: ListAction[] = ['txlist', 'txlistinternal', 'tokentx', 'tokennfttx', 'token1155tx']
+// ---- Etherscan V2 プロバイダの正規化 ----
+
+const ES_ENDPOINTS: ListAction[] = [
+  'txlist',
+  'txlistinternal',
+  'tokentx',
+  'tokennfttx',
+  'token1155tx',
+]
 
 function normTx(chainId: number, wallet: string, r: Record<string, string>): TxRow {
   const input = r.input ?? '0x'
@@ -95,26 +105,21 @@ function withPerHashIndex<T>(
   })
 }
 
-/**
- * startTs以降〜最新ブロックまでのraw dataをIndexedDBに揃える。
- * 取得済み範囲(ranges)は再取得しない(仕様v0.2 §4.4 / 逆算方式のため常に最新まで取る)。
- */
-export async function ensureRawData(
-  chainId: number,
+async function ensureEtherscanData(
+  chain: ChainConfig,
   wallet: string,
   startTs: number,
+  latestBlock: number,
   apiKey: string,
   onProgress: ProgressFn,
 ): Promise<void> {
-  const client = getClient(chainId)
-  const latestBlock = Number(await client.getBlockNumber())
+  const chainId = chain.chainId
   const startBlock = (await getBlockByTime(chainId, startTs, 'after', apiKey)) ?? 0
 
-  for (const endpoint of ENDPOINTS) {
+  for (const endpoint of ES_ENDPOINTS) {
     const rangeKey = `${chainId}:${wallet}:${endpoint}`
     const range = await db.ranges.get(rangeKey)
 
-    // 取得すべき区間を決める(既存範囲の前方拡張・後方拡張)
     const gaps: [number, number][] = []
     if (!range) {
       gaps.push([startBlock, latestBlock])
@@ -151,6 +156,68 @@ export async function ensureRawData(
       toBlock: latestBlock,
       fetchedAt: Date.now(),
     })
+  }
+}
+
+// ---- Moralis プロバイダ ----
+
+async function ensureMoralisData(
+  chain: ChainConfig,
+  wallet: string,
+  startTs: number,
+  latestBlock: number,
+  apiKey: string,
+  onProgress: ProgressFn,
+): Promise<void> {
+  const chainId = chain.chainId
+  const rangeKey = `${chainId}:${wallet}:history`
+  const range = await db.ranges.get(rangeKey)
+
+  // 取得済み範囲が要求期間をカバーしていれば、前回のtoBlock以降だけ差分取得する。
+  // 要求期間の方が古い場合は期間全体を取り直す(bulkPutで重複は上書きされる)
+  let sinceBlock = 0
+  if (range && (range.fromTs ?? Infinity) <= startTs) {
+    if (range.toBlock >= latestBlock) return
+    sinceBlock = range.toBlock
+  }
+
+  onProgress('取得中: ウォレット履歴', 'Moralisから取得しています')
+  const data = await fetchMoralisHistory(chain, wallet, apiKey, sinceBlock, startTs, (n) =>
+    onProgress('取得中: ウォレット履歴', `${n.toLocaleString()} 件`),
+  )
+  if (data.txs.length > 0) await db.txs.bulkPut(data.txs)
+  if (data.internals.length > 0) await db.internals.bulkPut(data.internals)
+  if (data.transfers.length > 0) await db.transfers.bulkPut(data.transfers)
+
+  await db.ranges.put({
+    key: rangeKey,
+    chainId,
+    wallet,
+    endpoint: 'history',
+    fromBlock: 0,
+    toBlock: latestBlock,
+    fromTs: Math.min(startTs, range?.fromTs ?? startTs),
+    fetchedAt: Date.now(),
+  })
+}
+
+/**
+ * startTs以降〜最新ブロックまでのraw dataをIndexedDBに揃える。
+ * 取得済み範囲(ranges)は再取得しない(仕様v0.2 §4.4 / 逆算方式のため常に最新まで取る)。
+ * プロバイダはチェーンごとに切り替える(仕様v0.3改: Etherscan / Moralis)。
+ */
+export async function ensureRawData(
+  chain: ChainConfig,
+  wallet: string,
+  startTs: number,
+  keys: ApiKeys,
+  onProgress: ProgressFn,
+): Promise<void> {
+  const latestBlock = Number(await getClient(chain.chainId).getBlockNumber())
+  if (chain.explorer.kind === 'etherscan') {
+    await ensureEtherscanData(chain, wallet, startTs, latestBlock, keys.etherscan, onProgress)
+  } else {
+    await ensureMoralisData(chain, wallet, startTs, latestBlock, keys.moralis, onProgress)
   }
 }
 

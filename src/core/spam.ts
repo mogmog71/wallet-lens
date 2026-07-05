@@ -10,6 +10,7 @@ const EMOJI_PATTERN = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u
  * - price_unavailable: DefiLlamaで現在価格が取れない
  * - passive_only: 対象アドレスがこのトークンを一度も能動的に操作していない
  * - lure_name: 名前にURL・絵文字・誘導文字列
+ * - provider_flag: プロバイダ(Moralis)のpossible_spam判定
  */
 export function evaluateSpamTokens(
   chainId: number,
@@ -33,6 +34,7 @@ export function evaluateSpamTokens(
   // 能動操作の判定材料
   const sentTokens = new Set(erc20.filter((t) => t.from === wallet).map((t) => t.tokenAddress))
   const calledContracts = new Set(raw.txs.filter((t) => t.from === wallet).map((t) => t.to))
+  const providerFlagged = new Set(erc20.filter((t) => t.providerSpam).map((t) => t.tokenAddress))
 
   const rows: TokenRow[] = []
   for (const [addr, meta] of tokenMeta) {
@@ -44,6 +46,7 @@ export function evaluateSpamTokens(
           EMOJI_PATTERN.test(meta.name) || EMOJI_PATTERN.test(meta.symbol)) {
         reasons.push('lure_name')
       }
+      if (providerFlagged.has(addr)) reasons.push('provider_flag')
     }
     rows.push({
       key: `${chainId}:${wallet}:${addr}`,
