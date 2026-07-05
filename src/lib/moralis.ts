@@ -173,7 +173,21 @@ function normalizeItem(
     contractAddress: (it.receipt_contract_address ?? '').toLowerCase(),
   })
 
+  // Moralisのinternal_transactionsはトップレベルcall(tx本体のvalue移動そのもの)を
+  // 含むため、そのまま保存するとtx.valueと二重計上になる。tx本体と同じ
+  // (from, to, value) の最初の1件はルートcallとみなして除外する。
+  let rootDropped = false
   it.internal_transactions?.forEach((t, i) => {
+    if (
+      !rootDropped &&
+      t.value !== '0' &&
+      t.value === it.value &&
+      (t.from ?? '').toLowerCase() === (it.from_address ?? '').toLowerCase() &&
+      (t.to ?? '').toLowerCase() === (it.to_address ?? '').toLowerCase()
+    ) {
+      rootDropped = true
+      return
+    }
     out.internals.push({
       key: `${chainId}:${wallet}:${it.hash}:${i}`,
       chainId,

@@ -221,6 +221,31 @@ export async function ensureRawData(
   }
 }
 
+/**
+ * Moralis由来のinternal txに混入するトップレベルcall(tx本体と同じ from/to/value)を
+ * 除外する。tx.valueとの二重計上防止。過去に取得済みのキャッシュにも混入しているため、
+ * 取得時(moralis.ts)だけでなく読み出し時にも適用して既存キャッシュを救済する。
+ */
+function dropRootCallInternals(txs: TxRow[], internals: InternalTxRow[]): InternalTxRow[] {
+  const txByHash = new Map(txs.map((t) => [t.hash, t]))
+  const dropped = new Set<string>()
+  return internals.filter((it) => {
+    if (dropped.has(it.hash)) return true
+    const tx = txByHash.get(it.hash)
+    if (
+      tx &&
+      it.value !== '0' &&
+      it.value === tx.value &&
+      it.from === tx.from &&
+      it.to === tx.to
+    ) {
+      dropped.add(it.hash)
+      return false
+    }
+    return true
+  })
+}
+
 /** IndexedDBからraw dataを読み出す(startTs以降のみ) */
 export async function loadRawData(
   chainId: number,
@@ -232,9 +257,15 @@ export async function loadRawData(
     db.internals.where('[chainId+wallet]').equals([chainId, wallet]).toArray(),
     db.transfers.where('[chainId+wallet]').equals([chainId, wallet]).toArray(),
   ])
+  const inRangeTxs = txs
+    .filter((r) => r.timeStamp >= startTs)
+    .sort((a, b) => a.timeStamp - b.timeStamp)
   return {
-    txs: txs.filter((r) => r.timeStamp >= startTs).sort((a, b) => a.timeStamp - b.timeStamp),
-    internals: internals.filter((r) => r.timeStamp >= startTs).sort((a, b) => a.timeStamp - b.timeStamp),
+    txs: inRangeTxs,
+    internals: dropRootCallInternals(
+      inRangeTxs,
+      internals.filter((r) => r.timeStamp >= startTs).sort((a, b) => a.timeStamp - b.timeStamp),
+    ),
     transfers: transfers.filter((r) => r.timeStamp >= startTs).sort((a, b) => a.timeStamp - b.timeStamp),
   }
 }
