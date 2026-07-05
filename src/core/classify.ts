@@ -46,11 +46,13 @@ export function groupByHash(raw: RawData): TxGroup[] {
 
 const MAX_HALF = 2n ** 255n
 
-function methodNameOf(tx: TxRow | undefined): string | undefined {
+function methodNameOf(tx: TxRow | undefined, sigNames?: Map<string, string>): string | undefined {
   if (!tx) return undefined
   const fn = tx.functionName?.split('(')[0]?.trim()
   if (fn) return fn
-  if (tx.methodId && tx.methodId !== '0x' && tx.input !== '0x') return tx.methodId
+  if (tx.methodId && tx.methodId !== '0x' && tx.input !== '0x') {
+    return sigNames?.get(tx.methodId) ?? tx.methodId
+  }
   return undefined
 }
 
@@ -165,12 +167,13 @@ export function classifyTx(
   chain: ChainConfig,
   receipt: ReceiptRow | undefined,
   spamTokens: Map<string, TokenRow>,
+  sigNames?: Map<string, string>,
 ): DecodedAction {
   const tx = group.tx
   const d = computeDeltas(group, wallet)
   const { assetsIn, assetsOut } = toAssets(d, chain, spamTokens)
   const status: 'success' | 'failed' = tx?.isError ? 'failed' : 'success'
-  const methodName = methodNameOf(tx)
+  const methodName = methodNameOf(tx, sigNames)
   const isSender = !!tx && tx.from === wallet
   const gasFeeNative = isSender
     ? (BigInt(tx!.gasUsed || '0') * BigInt(tx!.gasPrice || '0')).toString()
@@ -231,8 +234,8 @@ export function classifyTx(
       return {
         ...base,
         actionType: 'wrap',
-        protocolName: 'WETH',
-        summary: `${amt} ${chain.nativeSymbol} を WETH にラップしました`,
+        protocolName: chain.wrappedSymbol,
+        summary: `${amt} ${chain.nativeSymbol} を ${chain.wrappedSymbol} にラップしました`,
         confidence: 'high',
         reason: 'wrapped nativeへのdeposit()',
       }
@@ -242,8 +245,8 @@ export function classifyTx(
       return {
         ...base,
         actionType: 'unwrap',
-        protocolName: 'WETH',
-        summary: `WETH を ${amt} ${chain.nativeSymbol} に戻しました(アンラップ)`,
+        protocolName: chain.wrappedSymbol,
+        summary: `${chain.wrappedSymbol} を ${amt} ${chain.nativeSymbol} に戻しました(アンラップ)`,
         confidence: 'high',
         reason: 'wrapped nativeへのwithdraw()',
       }

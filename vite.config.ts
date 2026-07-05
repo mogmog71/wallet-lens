@@ -6,6 +6,20 @@ import { VitePWA } from 'vite-plugin-pwa'
 // base: './' — GitHub Pages のサブパス配信でも動くように相対パスでビルドする
 export default defineConfig({
   base: './',
+  worker: {
+    format: 'es',
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        // 初期ロードを軽くする(モバイル対策): 大きな依存を分割
+        manualChunks: {
+          recharts: ['recharts'],
+          viem: ['viem'],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),

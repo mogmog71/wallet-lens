@@ -55,8 +55,21 @@ export function AddressForm(props: {
 
       <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-3">
         <div>
-          <p className="text-xs font-medium text-slate-400">チェーン</p>
-          <div className="mt-1.5 flex gap-2">
+          <p className="text-xs font-medium text-slate-400">
+            チェーン
+            <button
+              type="button"
+              onClick={() =>
+                setChainIds(
+                  chainIds.length === CHAINS.length ? [] : CHAINS.map((c) => c.chainId),
+                )
+              }
+              className="ml-2 text-[11px] text-sky-400 underline"
+            >
+              {chainIds.length === CHAINS.length ? '全解除' : '全選択'}
+            </button>
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
             {CHAINS.map((c) => (
               <button
                 key={c.chainId}

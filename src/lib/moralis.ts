@@ -111,8 +111,7 @@ export async function fetchMoralisHistory(
   startTs: number,
   onPage?: (fetched: number) => void,
 ): Promise<MoralisRawData> {
-  if (chain.explorer.kind !== 'moralis') throw new MoralisError('not a moralis chain')
-  const chainParam = chain.explorer.moralisChain
+  const chainParam = chain.moralisChain
   const out: MoralisRawData = { txs: [], internals: [], transfers: [] }
   let cursor: string | undefined
   let count = 0

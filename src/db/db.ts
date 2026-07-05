@@ -9,6 +9,12 @@ import type {
   FetchRangeRow,
 } from '../core/types'
 
+export interface SigRow {
+  selector: string
+  /** 4byteで推定した関数名。見つからなかった場合は '' (負キャッシュ) */
+  name: string
+}
+
 // IndexedDB (Dexie)。SQLite設計(仕様v0.2 §7)のブラウザ版。
 // 生値はTEXT(string)のまま保存し、計算時のみBigInt化する。
 class WalletLensDB extends Dexie {
@@ -19,6 +25,7 @@ class WalletLensDB extends Dexie {
   receipts!: Table<ReceiptRow, string>
   prices!: Table<PriceRow, string>
   ranges!: Table<FetchRangeRow, string>
+  sigs!: Table<SigRow, string>
 
   constructor() {
     super('wallet-lens')
@@ -30,6 +37,9 @@ class WalletLensDB extends Dexie {
       receipts: 'key',
       prices: 'key, priceKey',
       ranges: 'key',
+    })
+    this.version(2).stores({
+      sigs: 'selector',
     })
   }
 }

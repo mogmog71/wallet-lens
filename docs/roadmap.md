@@ -1,5 +1,10 @@
 # Wallet Lens 拡張ロードマップ(2026-07-05)
 
+> **進捗(2026-07-05)**: A-1〜A-5、B-1、C-1(Worker化)+バンドル分割を実装済み。
+> 対応チェーンは8本(ETH / Base / Arbitrum / Optimism / Polygon / BNB / Avalanche / Linea)。
+> zkSync EraはMoralisの対応状況を確認してから追加する(見送り)。
+> 残タスク: B-2〜B-5、C-2以降、Phase D。
+
 ゴール: **「チェーンを追加するだけで動く」構造を確立し、主要EVMチェーンを広くカバーする。**
 
 現状の到達点: ETH(Etherscan)+ Base/Arbitrum(Moralis)のMVPが稼働。

@@ -46,6 +46,18 @@ export const SEED_LABELS: SeedLabel[] = [
   { address: '0x4200000000000000000000000000000000000010', chainId: 8453, name: 'Base Bridge (L2)', category: 'bridge' },
   // LayerZero endpoint v1
   { address: '0x66a71dcef29a0ffbdbe3c6a460a3b5bc225cd675', chainId: 1, name: 'LayerZero Endpoint', category: 'bridge' },
+  // Optimism native bridge
+  { address: '0xbeb5fc579115071764c7423a4f12edde41f106ed', chainId: 1, name: 'Optimism Portal', category: 'bridge' },
+  { address: '0x99c9fc46f92e8a1c0dec1b1747d010903e884be1', chainId: 1, name: 'Optimism Bridge', category: 'bridge' },
+  { address: '0x4200000000000000000000000000000000000010', chainId: 10, name: 'Optimism Bridge (L2)', category: 'bridge' },
+  // Polygon PoS bridge (L1側)
+  { address: '0x40ec5b33f54e0e8a33a975908c5ba1c14e5bbbdf', chainId: 1, name: 'Polygon Bridge', category: 'bridge' },
+  { address: '0xa0c68c638235ee32657e8f720a23cec1bfc77c77', chainId: 1, name: 'Polygon Bridge', category: 'bridge' },
+
+  // ---- CEX hot wallets (BSC / Avalanche, 公知) ----
+  { address: '0x8894e0a0c962cb723c1976a4421c95949be2d4e3', chainId: 56, name: 'Binance', category: 'cex' },
+  { address: '0xe2fc31f816a9b94326492132018c3aecc4a93ae1', chainId: 56, name: 'Binance', category: 'cex' },
+  { address: '0x9f8c163cba728e99993abe7495f06c0a3c8ac8b9', chainId: 43114, name: 'Binance', category: 'cex' },
 ]
 
 /** (chainId, address) → ラベル。chainId=0(共通)は全チェーンで一致する */

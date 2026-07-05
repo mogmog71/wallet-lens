@@ -1,4 +1,4 @@
-import type { ChainConfig } from '../config/chains'
+import { usesEtherscan, type ChainConfig } from '../config/chains'
 import { db, type ApiKeys } from '../db/db'
 import { fetchAll, getBlockByTime, type ListAction } from '../lib/etherscan'
 import { fetchMoralisHistory } from '../lib/moralis'
@@ -214,7 +214,7 @@ export async function ensureRawData(
   onProgress: ProgressFn,
 ): Promise<void> {
   const latestBlock = Number(await getClient(chain.chainId).getBlockNumber())
-  if (chain.explorer.kind === 'etherscan') {
+  if (usesEtherscan(chain, keys.etherscan)) {
     await ensureEtherscanData(chain, wallet, startTs, latestBlock, keys.etherscan, onProgress)
   } else {
     await ensureMoralisData(chain, wallet, startTs, latestBlock, keys.moralis, onProgress)

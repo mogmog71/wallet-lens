@@ -25,18 +25,18 @@ export function SettingsModal(props: { onClose: () => void }) {
         </p>
 
         <label className="mt-4 block text-xs font-medium text-slate-300">
-          Etherscan APIキー <span className="text-slate-500">(Ethereumの解析に必要)</span>
+          Moralis APIキー <span className="text-sky-400">(推奨・全チェーン対応)</span>
         </label>
         <p className="mt-0.5 text-[11px] text-slate-500">
-          <a href="https://etherscan.io/myapikey" target="_blank" rel="noreferrer" className="text-sky-400 underline">
-            etherscan.io/myapikey
+          <a href="https://admin.moralis.com/" target="_blank" rel="noreferrer" className="text-sky-400 underline">
+            admin.moralis.com
           </a>
-          で無料発行(無料枠はEthereumのみ対応)
+          で無料登録 → 「API Keys」からコピー(無料枠 40,000 CU/日)。これ1つで全チェーンを解析できます
         </p>
         <input
-          value={keys.etherscan}
-          onChange={(e) => setKeys({ ...keys, etherscan: e.target.value })}
-          placeholder="Etherscanキーを貼り付け"
+          value={keys.moralis}
+          onChange={(e) => setKeys({ ...keys, moralis: e.target.value })}
+          placeholder="Moralisキーを貼り付け"
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
@@ -44,18 +44,18 @@ export function SettingsModal(props: { onClose: () => void }) {
         />
 
         <label className="mt-4 block text-xs font-medium text-slate-300">
-          Moralis APIキー <span className="text-slate-500">(Base / Arbitrumの解析に必要)</span>
+          Etherscan APIキー <span className="text-slate-500">(任意・Ethereumの解析品質向上)</span>
         </label>
         <p className="mt-0.5 text-[11px] text-slate-500">
-          <a href="https://admin.moralis.com/" target="_blank" rel="noreferrer" className="text-sky-400 underline">
-            admin.moralis.com
+          <a href="https://etherscan.io/myapikey" target="_blank" rel="noreferrer" className="text-sky-400 underline">
+            etherscan.io/myapikey
           </a>
-          で無料登録 → 「API Keys」からコピー(無料枠 40,000 CU/日)
+          で無料発行。設定するとEthereumはEtherscanから取得します(メソッド名の精度が高い)
         </p>
         <input
-          value={keys.moralis}
-          onChange={(e) => setKeys({ ...keys, moralis: e.target.value })}
-          placeholder="Moralisキーを貼り付け"
+          value={keys.etherscan}
+          onChange={(e) => setKeys({ ...keys, etherscan: e.target.value })}
+          placeholder="Etherscanキーを貼り付け(任意)"
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}

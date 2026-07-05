@@ -18,6 +18,8 @@ export interface TxRow {
   gasUsed: string
   gasPrice: string
   contractAddress: string // デプロイされたコントラクト
+  /** プロバイダがinputを返さなかったtxをRPCで補完済みか(再照会防止) */
+  inputChecked?: boolean
 }
 
 export interface InternalTxRow {

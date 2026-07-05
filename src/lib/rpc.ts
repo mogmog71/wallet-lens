@@ -1,7 +1,7 @@
 import { createPublicClient, fallback, http, erc20Abi, type PublicClient } from 'viem'
 import { getChain } from '../config/chains'
 import { db } from '../db/db'
-import type { ReceiptRow } from '../core/types'
+import type { ReceiptRow, TxRow } from '../core/types'
 import { mapLimit } from './ratelimit'
 
 const clients = new Map<number, PublicClient>()
@@ -43,6 +43,33 @@ export async function fetchCurrentBalances(
     })
   }
   return { native, tokens }
+}
+
+/**
+ * プロバイダ(Moralis)がinputを返さなかった送信txについて、RPCから
+ * calldataを補完取得する(B-1: 「不明」分類の削減)。
+ * 行を直接書き換えてIndexedDBにも保存し、inputCheckedで再照会を防ぐ。
+ */
+export async function enrichTxInputs(
+  chainId: number,
+  rows: TxRow[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<void> {
+  const client = getClient(chainId)
+  let done = 0
+  await mapLimit(rows, 8, async (row) => {
+    try {
+      const tx = await client.getTransaction({ hash: row.hash as `0x${string}` })
+      row.input = tx.input
+      row.methodId = tx.input.slice(0, 10).toLowerCase()
+    } catch {
+      // 取得できなくても既存データのまま進める
+    }
+    row.inputChecked = true
+    done++
+    if (done % 10 === 0 || done === rows.length) onProgress?.(done, rows.length)
+  })
+  if (rows.length > 0) await db.txs.bulkPut(rows)
 }
 
 /**

@@ -3,9 +3,9 @@
 EVMアドレスを入力すると、オンチェーン行動(Swap / Approve / Bridge / 送金 など)を人間が読める形に分類し、タイムライン・資産推移グラフ・概要で表示するWebアプリ。
 
 - **完全クライアントサイド** — サーバー不要。解析はすべてブラウザ内で実行され、データはブラウザのIndexedDBにキャッシュされる
-- **維持費ゼロ** — 静的ホスティング(GitHub Pages)で動く。必要なAPIキーは無料枠のみ(利用者が自分で入力): Ethereum用に[Etherscan](https://etherscan.io/myapikey)、Base/Arbitrum用に[Moralis](https://admin.moralis.com/)
+- **維持費ゼロ** — 静的ホスティング(GitHub Pages)で動く。必要なAPIキーは[Moralis](https://admin.moralis.com/)の無料キー1つ(全チェーン対応・利用者が自分で入力)。[Etherscan](https://etherscan.io/myapikey)キーは任意(Ethereumの取得品質向上用)
 - **スマホ対応(PWA)** — ホーム画面に追加してアプリのように使える
-- 対応チェーン: Ethereum / Base / Arbitrum One(Etherscan API V2のchainid切替で拡張可能)
+- 対応チェーン: Ethereum / Base / Arbitrum / Optimism / Polygon / BNB Chain / Avalanche / Linea(追加手順: [docs/adding-a-chain.md](docs/adding-a-chain.md))
 
 仕様書: [docs/spec-v0.2.md](docs/spec-v0.2.md)(ベース) / [docs/spec-v0.3.md](docs/spec-v0.3.md)(差分・現行) / [docs/review-v0.2.md](docs/review-v0.2.md)(レビュー)
 

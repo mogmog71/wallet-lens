@@ -2,7 +2,8 @@ import { getChain } from '../config/chains'
 import { db, type ApiKeys } from '../db/db'
 import { fetchCurrentPrices, fetchDailyPrices } from '../lib/defillama'
 import { rawToNumber, utcDate } from '../lib/format'
-import { fetchCurrentBalances, fetchReceipts } from '../lib/rpc'
+import { lookupSelectors } from '../lib/fourbyte'
+import { enrichTxInputs, fetchCurrentBalances, fetchReceipts } from '../lib/rpc'
 import { classifyTx, groupByHash, isSwapCandidate } from './classify'
 import { ensureRawData, loadRawData } from './fetcher'
 import { mergeChains, reconstructChain, type ChainReconstruction } from './portfolio'
@@ -43,6 +44,37 @@ export async function runAnalysis(
       continue
     }
 
+    // 1.5 「不明」削減(B-1): プロバイダがinputを返さなかった送信txをRPCで補完し、
+    //     関数名が無いメソッドセレクタは4byte.directoryで推定する
+    const enrichTargets = groups
+      .filter(
+        (g) =>
+          g.tx &&
+          g.tx.from === wallet &&
+          !g.tx.inputChecked &&
+          g.tx.input === '0x' &&
+          (g.transfers.length > 0 || g.internals.length > 0 || g.tx.value === '0'),
+      )
+      .map((g) => g.tx!)
+    if (enrichTargets.length > 0) {
+      onProgress(`${chain.name}: メソッド情報を補完`, `${enrichTargets.length} 件`)
+      await enrichTxInputs(chainId, enrichTargets, (done, total) =>
+        onProgress(`${chain.name}: メソッド情報を補完`, `${done}/${total}`),
+      )
+    }
+    const unnamedSelectors = [
+      ...new Set(
+        groups
+          .filter(
+            (g) =>
+              g.tx && !g.tx.functionName && g.tx.methodId.length === 10 && g.tx.input !== '0x',
+          )
+          .map((g) => g.tx!.methodId),
+      ),
+    ]
+    const sigNames =
+      unnamedSelectors.length > 0 ? await lookupSelectors(unnamedSelectors) : undefined
+
     // 2. トークン現在価格(スパム判定の材料にもなる)
     onProgress(`${chain.name}: 価格取得`, '現在価格を照会しています')
     const erc20Addrs = [
@@ -70,7 +102,9 @@ export async function runAnalysis(
 
     // 5. 分類
     onProgress(`${chain.name}: 分類中`, `${groups.length} txを分類しています`)
-    const actions = groups.map((g) => classifyTx(g, wallet, chain, receipts.get(g.hash), tokensMap))
+    const actions = groups.map((g) =>
+      classifyTx(g, wallet, chain, receipts.get(g.hash), tokensMap, sigNames),
+    )
 
     // 6. 現在残高(multicall)
     onProgress(`${chain.name}: 残高取得`, 'multicallで現在残高を取得')

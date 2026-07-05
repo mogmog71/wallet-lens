@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { getChain } from './config/chains'
-import { runAnalysis } from './core/analyze'
+import { useEffect, useRef, useState } from 'react'
+import { getChain, usesEtherscan } from './config/chains'
+import type { WorkerResponse } from './core/worker'
 import type { AnalysisParams, AnalysisResult } from './core/types'
 import { getApiKeys } from './db/db'
 import { AddressForm } from './ui/AddressForm'
@@ -22,31 +22,53 @@ export default function App() {
     const k = getApiKeys()
     return !k.etherscan && !k.moralis
   })
+  const workerRef = useRef<Worker | null>(null)
+  useEffect(() => () => workerRef.current?.terminate(), [])
 
-  async function handleAnalyze(params: AnalysisParams) {
+  function handleAnalyze(params: AnalysisParams) {
     const keys = getApiKeys()
-    // 選択チェーンに必要なキーが揃っているか(Ethereum→Etherscan / Base・Arbitrum→Moralis)
-    const kinds = new Set(params.chainIds.map((id) => getChain(id).explorer.kind))
-    const missing: string[] = []
-    if (kinds.has('etherscan') && !keys.etherscan) missing.push('Etherscan')
-    if (kinds.has('moralis') && !keys.moralis) missing.push('Moralis')
-    if (missing.length > 0) {
-      setError(`${missing.join('・')}のAPIキーが未設定です。設定画面から登録してください。`)
+    // Moralisが全チェーン共通のデフォルト。EtherscanキーがあるチェーンはEtherscanで代替可
+    const needsMoralis = params.chainIds.some(
+      (id) => !usesEtherscan(getChain(id), keys.etherscan),
+    )
+    if (needsMoralis && !keys.moralis) {
+      const ethOnly = params.chainIds.every((id) => getChain(id).etherscanFree)
+      setError(
+        ethOnly
+          ? 'MoralisまたはEtherscanのAPIキーを設定してください。'
+          : 'Moralis APIキーが未設定です。設定画面から登録してください(無料)。',
+      )
       setPhase('error')
       setShowSettings(true)
       return
     }
     setPhase('running')
     setError('')
-    try {
-      const r = await runAnalysis(params, keys, (step, detail) => setProgress({ step, detail }))
-      setResult(r)
-      setTab('summary')
-      setPhase('done')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-      setPhase('error')
+    // 解析はWorkerで実行し、UI(特にモバイル)のフリーズを防ぐ
+    workerRef.current?.terminate()
+    const w = new Worker(new URL('./core/worker.ts', import.meta.url), { type: 'module' })
+    workerRef.current = w
+    w.onmessage = (e: MessageEvent<WorkerResponse>) => {
+      const msg = e.data
+      if (msg.type === 'progress') {
+        setProgress({ step: msg.step, detail: msg.detail })
+      } else if (msg.type === 'done') {
+        setResult(msg.result)
+        setTab('summary')
+        setPhase('done')
+        w.terminate()
+      } else {
+        setError(msg.message)
+        setPhase('error')
+        w.terminate()
+      }
     }
+    w.onerror = (e) => {
+      setError(e.message || '解析中に予期しないエラーが発生しました')
+      setPhase('error')
+      w.terminate()
+    }
+    w.postMessage({ params, keys })
   }
 
   return (
